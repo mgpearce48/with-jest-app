@@ -1,0 +1,45 @@
+pipeline {
+    agent any
+    environment {
+        CI = 'true'
+        DOCKERHUB_CREDENTIALS = credentials('mgpearce-dockerhub')
+    }
+    stages {
+        stage('Build-Test') {
+            agent {
+                docker {
+                    image 'node:lts-buster-slim'
+                    args '-p 3000:3000'
+                    reuseNode true
+                }
+            }
+            steps {
+                sh 'npm install'
+                sh './jenkins/scripts/test.sh'
+                sh './jenkins/scripts/deliver.sh'
+                input message: 'Finished using the web site? (Click "Proceed" to continue)'
+                sh './jenkins/scripts/kill.sh'
+            }
+        }
+        stage('Build-Deploy') {
+            steps {
+                sh 'docker build -f Dockerfile.prod -t mgpearce/testreact:latest .'
+            }
+        }
+        stage('Login-Dockerhub') {
+            steps {
+                sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
+            }
+        }
+        stage('Push-Dockerhub') {
+            steps {
+                sh 'docker push mgpearce/testreact:latest'
+            }
+        }
+    }
+    post {
+        always {
+            sh 'docker logout'
+        }
+    }
+}
