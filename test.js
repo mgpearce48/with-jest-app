@@ -1,9 +1,9 @@
 import React from 'react'
 
-const test = () => {
+const TestPage = () => {
     return (
-        <div>test</div>
+        <div>Test Page</div>
     )
 }
 
-export default test
+export default TestPage
